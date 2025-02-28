@@ -1,0 +1,2 @@
+use "type": "module" to be able to use the latest 'import' and 'export' features
+remember to change the file name by indexing the paths with '-m' eg. "main": "index.mjs"
