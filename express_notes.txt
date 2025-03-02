@@ -1,2 +1,4 @@
 use "type": "module" to be able to use the latest 'import' and 'export' features
 remember to change the file name by indexing the paths with '-m' eg. "main": "index.mjs"
+it is best practice to use 'api' before defining my endpoints => app.get("/api/users", (req, res) => {})
+Query parameters are extra pieces of data you can pass in the URL after a question mark. They’re accessed via the req.query object. For example, in a URL like /search?term=javascript, req.query would be { term: 'javascript' }. They’re useful for filtering or customizing responses without changing the URL structure.
