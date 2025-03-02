@@ -1,4 +1,12 @@
 import express from "express";
+import {
+  query,
+  validationResult,
+  body,
+  matchedData,
+  checkSchema,
+} from "express-validator";
+import { createUserValidationSchema } from "./utils/validationSchemas.mjs";
 
 const app = express();
 
@@ -16,11 +24,9 @@ const resolveIndexByUserId = (req, res, next) => {
   const parsedId = parseInt(id);
 
   if (isNaN(parsedId)) return res.sendStatus(400);
-
   const findUserIndex = mockUsers.findIndex((user) => user.id === parsedId);
 
   if (findUserIndex === -1) return res.sendStatus(404);
-
   req.findUserIndex = findUserIndex;
 
   next();
@@ -29,6 +35,7 @@ const resolveIndexByUserId = (req, res, next) => {
 app.use(loggingMiddleWare);
 
 const PORT = process.env.PORT || 3000;
+
 const mockUsers = [
   {
     id: 1,
@@ -71,24 +78,39 @@ app.get("/", (req, res) => {
   res.status(201).send({ msg: "Hello world!" });
 });
 
-app.get("/api/users", (req, res) => {
-  const {
-    query: { filter, value },
-  } = req;
+app.get(
+  "/api/users",
+  query("filter")
+    .isString()
+    .notEmpty()
+    .withMessage("Must not be empty")
+    .isLength({ min: 3, max: 10 })
+    .withMessage("Must be at least 3 - 10 characters"),
+  (req, res) => {
+    const result = validationResult(req);
+    console.log(result);
 
-  if (filter && value)
-    return res.send(mockUsers.filter((user) => user[filter].includes(value)));
-  return res.send(mockUsers);
-});
+    const {
+      query: { filter, value },
+    } = req;
 
-app.post("/api/users", (req, res) => {
-  console.log(req.body);
+    if (filter && value)
+      return res.send(mockUsers.filter((user) => user[filter].includes(value)));
+    return res.send(mockUsers);
+  }
+);
 
-  const { body } = req;
-  const newUser = { id: mockUsers[mockUsers.length - 1].id + 1, ...body };
+app.post("/api/users", checkSchema(createUserValidationSchema), (req, res) => {
+  const result = validationResult(req);
+  console.log(result);
+
+  if (!result.isEmpty())
+    return res.status(400).send({ errors: result.array() });
+
+  const data = matchedData(req);
+  const newUser = { id: mockUsers[mockUsers.length - 1].id + 1, ...data };
 
   mockUsers.push(newUser);
-
   return res.status(201).send(newUser);
 });
 
@@ -102,7 +124,6 @@ app.get("/api/users/:id", resolveIndexByUserId, (req, res) => {
 
 app.put("/api/users/:id", resolveIndexByUserId, (req, res) => {
   const { body, findUserIndex } = req;
-
   mockUsers[findUserIndex] = { id: mockUsers[findUserIndex].id, ...body };
 
   return res.sendStatus(200);
@@ -110,7 +131,6 @@ app.put("/api/users/:id", resolveIndexByUserId, (req, res) => {
 
 app.patch("/api/users/:id", resolveIndexByUserId, (req, res) => {
   const { body, findUserIndex } = req;
-
   mockUsers[findUserIndex] = { ...mockUsers[findUserIndex], ...body };
 
   return res.sendStatus(200);
@@ -118,7 +138,6 @@ app.patch("/api/users/:id", resolveIndexByUserId, (req, res) => {
 
 app.delete("/api/users/:id", resolveIndexByUserId, (req, res) => {
   const { findUserIndex } = req;
-
   mockUsers.splice(findUserIndex, 1);
 
   return res.sendStatus(200);
